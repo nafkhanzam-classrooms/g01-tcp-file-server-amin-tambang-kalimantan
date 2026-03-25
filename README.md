@@ -4,13 +4,13 @@
 ## Anggota Kelompok
 | Nama           | NRP        | Kelas     |
 | ---            | ---        | ----------|
-|                |            |           |
-|                |            |           |
+| Nabil Irawan | 5025241231 | C |
+| Aminudin Wijaya | 5025241242 | C |
 
 ## Link Youtube (Unlisted)
 Link ditaruh di bawah ini
 ```
-
+https://youtu.be/ZDM5xyT1PK0?si=EiUVatQQlle0M8qf
 ```
 
 ## Penjelasan Program
