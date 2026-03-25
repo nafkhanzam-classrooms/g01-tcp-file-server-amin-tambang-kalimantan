@@ -15,8 +15,6 @@ https://youtu.be/ZDM5xyT1PK0?si=EiUVatQQlle0M8qf
 
 ## Penjelasan Program
 
-# Penjelasan Kode: Client-Server TCP
-
 Secara keseluruhan code ini adalah implementasi aplikasi Client-Server sederhana menggunakan protokol TCP melalui modul `socket` di Python dengan mendukung fitur broadcast dan transfer file
 
 ---
