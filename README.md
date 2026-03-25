@@ -15,11 +15,9 @@ https://youtu.be/ZDM5xyT1PK0?si=EiUVatQQlle0M8qf
 
 ## Penjelasan Program
 
-# Penjelasan Kode: Client-Server TCP (Python)
+# Penjelasan Kode: Client-Server TCP
 
-Secara keseluruhan, kode ini adalah implementasi aplikasi *Client-Server* sederhana menggunakan protokol TCP (melalui modul `socket` di Python). Aplikasi ini mendukung fitur *chatting* (pesan teks) dan transfer file (upload/download). 
-
-Untuk menghindari masalah pesan yang terpotong atau menumpuk di jaringan (dikenal sebagai *TCP stream reassembly issues*), kedua skrip menggunakan teknik **Length-Prefixed Framing**. Artinya, sebelum mengirim data inti, program akan mengirimkan 4 byte pertama yang berisi informasi "panjang/ukuran data" tersebut.
+Secara keseluruhan code ini adalah implementasi aplikasi Client-Server sederhana menggunakan protokol TCP melalui modul `socket` di Python dengan mendukung fitur broadcast dan transfer file.
 
 ---
 
