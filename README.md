@@ -197,8 +197,6 @@ if __name__ == '__main__':
 
 ## 3. `server-select.py`
 
-> Fungsi `send_msg`, `recv_msg`, dan `process_client_data` **identik** dengan `server-sync.py` (lihat bagian 2), sehingga tidak akan dijelaskan ulang. Penjelasan berikut hanya mencakup bagian yang berbeda.
-
 ```python
 import select
 ```
@@ -247,9 +245,6 @@ if __name__ == '__main__':
 ---
 
 ## 4. `server-poll.py`
-
-> Fungsi `send_msg`, `recv_msg`, dan `process_client_data` **identik** dengan `server-sync.py` (lihat bagian 2), sehingga tidak akan dijelaskan ulang. Penjelasan berikut hanya mencakup bagian yang berbeda.
-
 ```python
 import select
 ```
@@ -306,8 +301,6 @@ if __name__ == '__main__':
 ---
 
 ## 5. `server-thread.py`
-
-> Fungsi `send_msg`, `recv_msg`, dan `process_client_data` **identik** dengan `server-sync.py` (lihat bagian 2), sehingga tidak akan dijelaskan ulang. Penjelasan berikut hanya mencakup bagian yang berbeda.
 
 ```python
 import threading
