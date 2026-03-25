@@ -195,6 +195,166 @@ if __name__ == '__main__':
 * Saat ada klien terhubung, `accept()` menghasilkan soket baru (`conn`)
 * Karena menggunakan loop synchronous tanpa multithreading, server ini akan ter-block pada satu klien, kemudian server tidak bisa menerima klien kedua sebelum klien pertama terputus
 
+---
+
+## 3. `server-select.py`
+
+> Fungsi `send_msg`, `recv_msg`, dan `process_client_data` **identik** dengan `server-sync.py` (lihat bagian 2), sehingga tidak akan dijelaskan ulang. Penjelasan berikut hanya mencakup bagian yang berbeda.
+
+```python
+import select
+```
+* `select` menyediakan I/O multiplexing, memungkinkan server memonitor banyak soket sekaligus dalam satu thread
+
+### `__main__`
+```python
+if __name__ == '__main__':
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('127.0.0.1', 5000))
+    s.listen(5)
+    
+    input_sockets = [s]
+    print("Select Server Started")
+```
+* Setup soket TCP sama seperti `server-sync.py`
+* `input_sockets = [s]` menyimpan daftar semua soket yang perlu dipantau, diawali dengan soket server itu sendiri
+
+```python
+    while True:
+        read_ready, _, _ = select.select(input_sockets, [], [])
+        for sock in read_ready:
+            if sock == s:
+                conn, addr = s.accept()
+                input_sockets.append(conn)
+                print(f"Connected: {addr}")
+```
+* `select.select(input_sockets, [], [])` mem-block program hingga salah satu soket dalam list siap dibaca. Parameter kedua dan ketiga (kosong) untuk write-ready dan exception — tidak digunakan di sini
+* Setiap soket yang siap dibaca diiterasi. Jika soket tersebut adalah soket server (`s`), berarti ada klien baru yang ingin terhubung, maka `accept()` dipanggil dan soket klien baru ditambahkan ke `input_sockets`
+
+```python
+            else:
+                data = recv_msg(sock)
+                if data:
+                    clients = [c for c in input_sockets if c != s]
+                    process_client_data(sock, data, clients)
+                else:
+                    input_sockets.remove(sock)
+                    sock.close()
+```
+* Jika soket yang siap dibaca bukan soket server, berarti klien mengirim data
+* Daftar `clients` dibuat secara dinamis dengan memfilter soket server dari `input_sockets`
+* Jika `recv_msg` mengembalikan `None`, klien terputus sehingga soketnya dihapus dari list dan ditutup
+
+---
+
+## 4. `server-poll.py`
+
+> Fungsi `send_msg`, `recv_msg`, dan `process_client_data` **identik** dengan `server-sync.py` (lihat bagian 2), sehingga tidak akan dijelaskan ulang. Penjelasan berikut hanya mencakup bagian yang berbeda.
+
+```python
+import select
+```
+* Modul `select` juga menyediakan objek `poll()` sebagai alternatif dari `select.select()`
+
+### `__main__`
+```python
+if __name__ == '__main__':
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('127.0.0.1', 5000))
+    s.listen(5)
+    
+    poll_obj = select.poll()
+    poll_obj.register(s.fileno(), select.POLLIN)
+    
+    fd_map = {s.fileno(): s}
+    clients = []
+    print("Poll Server Started")
+```
+* `poll_obj = select.poll()` membuat objek poll baru
+* `poll_obj.register(s.fileno(), select.POLLIN)` mendaftarkan *file descriptor* soket server ke poll, dengan memantau event `POLLIN` (data siap dibaca)
+* `fd_map` adalah dictionary yang memetakan *file descriptor* (integer) ke objek soket, karena `poll()` bekerja menggunakan file descriptor bukan objek soket langsung
+* `clients` menyimpan daftar soket klien yang terhubung untuk keperluan broadcast
+
+```python
+    while True:
+        for fd, event in poll_obj.poll():
+            sock = fd_map[fd]
+            if sock == s:
+                conn, addr = s.accept()
+                fd_map[conn.fileno()] = conn
+                poll_obj.register(conn.fileno(), select.POLLIN)
+                clients.append(conn)
+                print(f"Connected: {addr}")
+```
+* `poll_obj.poll()` mem-block program dan mengembalikan list berisi tuple `(fd, event)` untuk setiap file descriptor yang memiliki event
+* Jika event terjadi pada soket server, klien baru diterima lalu file descriptor-nya didaftarkan ke `poll_obj` dan `fd_map`
+
+```python
+            elif event & select.POLLIN:
+                data = recv_msg(sock)
+                if data:
+                    process_client_data(sock, data, clients)
+                else:
+                    poll_obj.unregister(fd)
+                    del fd_map[fd]
+                    if sock in clients: clients.remove(sock)
+                    sock.close()
+```
+* `event & select.POLLIN` memeriksa apakah event yang terjadi adalah data masuk (menggunakan bitwise AND)
+* Jika klien terputus, file descriptor-nya di-*unregister* dari `poll_obj`, dihapus dari `fd_map` dan `clients`, lalu soketnya ditutup
+
+---
+
+## 5. `server-thread.py`
+
+> Fungsi `send_msg`, `recv_msg`, dan `process_client_data` **identik** dengan `server-sync.py` (lihat bagian 2), sehingga tidak akan dijelaskan ulang. Penjelasan berikut hanya mencakup bagian yang berbeda.
+
+```python
+import threading
+```
+* `threading` digunakan untuk menjalankan handler per klien di thread terpisah
+
+### `handle_client`
+```python
+clients = []
+
+def handle_client(conn, addr):
+    while True:
+        data = recv_msg(conn)
+        if not data:
+            break
+        process_client_data(conn, data, clients)
+    
+    clients.remove(conn)
+    conn.close()
+    print(f"Disconnected: {addr}")
+```
+* `clients` adalah list global yang menyimpan semua soket klien yang terhubung
+* Fungsi ini berjalan di thread terpisah untuk setiap klien, running terus-menerus menerima data
+* Jika `recv_msg` mengembalikan `None`, loop berhenti, soket klien dihapus dari list `clients`, dan koneksi ditutup
+
+### `__main__`
+```python
+if __name__ == '__main__':
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('127.0.0.1', 5000))
+    s.listen(5)
+    print("Thread Server Started")
+
+    while True:
+        conn, addr = s.accept()
+        clients.append(conn)
+        print(f"Connected: {addr}")
+        threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+```
+* Setup soket TCP sama seperti server lainnya
+* Setiap kali klien baru terhubung, soketnya ditambahkan ke list `clients` dan sebuah thread baru di-spawn via `threading.Thread()` untuk menangani klien tersebut
+* `daemon=True` memastikan thread otomatis mati saat program utama dihentikan
+* Berbeda dengan `server-sync.py`, server ini tidak ter-block pada satu klien karena setiap klien ditangani oleh thread-nya sendiri secara paralel
+
 ## Screenshot Hasil
 
 ![POC Sync](media/poc-sync.png)
