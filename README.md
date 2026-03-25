@@ -191,7 +191,7 @@ if __name__ == '__main__':
             process_client_data(conn, data, clients)
 ```
 * Saat ada klien terhubung, `accept()` menghasilkan soket baru (`conn`)
-* Karena menggunakan loop synchronous tanpa multithreading, server ini akan ter-block pada satu klien, kemudian server tidak bisa menerima klien kedua sebelum klien pertama terputus
+* Karena menggunakan loop synchronous tanpa multithreading, server ini akan blocking pada satu klien.
 
 ---
 
@@ -344,7 +344,6 @@ if __name__ == '__main__':
 * Setup soket TCP sama seperti server lainnya
 * Setiap kali klien baru terhubung, soketnya ditambahkan ke list `clients` dan sebuah thread baru di-spawn via `threading.Thread()` untuk menangani klien tersebut
 * `daemon=True` memastikan thread otomatis mati saat program utama dihentikan
-* Berbeda dengan `server-sync.py`, server ini tidak ter-block pada satu klien karena setiap klien ditangani oleh thread-nya sendiri secara paralel
 
 ## Screenshot Hasil
 
